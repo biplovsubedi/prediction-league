@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Premier League Standings</title>
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.dataTables.min.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/2.0.8/js/dataTables.min.js"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            margin: 12px;
+            font-size: 14px;
+        }
+
+        h1 {
+            margin: 6px 0 8px 0;
+            font-size: 18px;
+        }
+
+        .site-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .site-header a {
+            color: #0366d6;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        table.dataTable tbody tr:hover {
+            background: #f7f7f7;
+        }
+
+        table.dataTable thead th,
+        table.dataTable tbody td {
+            padding: 6px 8px !important;
+            font-size: 12.5px;
+            line-height: 1.1;
+        }
+
+        table.dataTable {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .wrap {
+            max-width: 680px;
+            margin: 0 auto;
+        }
+
+        /* Light backgrounds for Pos column */
+        .pos-cell-1 {
+            background: #fff4cc;
+        }
+
+        .pos-cell-2-4 {
+            background: #e8f0ff;
+        }
+
+        .pos-cell-5-7 {
+            background: #e9f7ef;
+        }
+
+        .pos-cell-18-20 {
+            background: #fdecea;
+        }
+    </style>
+    <script>
+        async function loadPL() {
+            // Use backend as a CORS-safe proxy with caching
+            const res = await fetch('/api/standings/pl/');
+            const teams = await res.json();
+            const simplified = teams.map(t => ({
+                id: t.id,
+                name: t.name,
+                win: t.win || 0,
+                loss: t.loss || 0,
+                draw: t.draw || 0,
+                points: t.points || 0,
+                position: t.position || 0,
+            })).sort((a, b) => (a.position || 0) - (b.position || 0));
+            const tbody = document.querySelector('#pl tbody');
+            tbody.innerHTML = '';
+            for (const t of simplified) {
+                const tr = document.createElement('tr');
+                const pos = Number(t.position || 0);
+                let posCls = '';
+                if (pos === 1) posCls = 'pos-cell-1';
+                else if (pos >= 2 && pos <= 4) posCls = 'pos-cell-2-4';
+                else if (pos >= 5 && pos <= 7) posCls = 'pos-cell-5-7';
+                else if (pos >= 18 && pos <= 20) posCls = 'pos-cell-18-20';
+                tr.innerHTML = `<td class="${posCls}">${t.position}</td><td>${t.name}</td><td>${t.win}</td><td>${t.draw}</td><td>${t.loss}</td><td>${t.points}</td>`;
+                tbody.appendChild(tr);
+            }
+            new DataTable('#pl', { paging: false, searching: false, info: false });
+        }
+        document.addEventListener('DOMContentLoaded', loadPL);
+    </script>
+</head>
+
+<body>
+    <div class="wrap">
+        <div class="site-header">
+            <a href="/">Home</a>
+            <a href="/api/page/current/">Current Standings</a>
+            <a href="/api/page/pl/">PL Table</a>
+        </div>
+        <h1>Premier League Standings</h1>
+        <table id="pl" class="display" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Pos</th>
+                    <th>Team</th>
+                    <th>W</th>
+                    <th>D</th>
+                    <th>L</th>
+                    <th>Pts</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</body>
+
+</html>

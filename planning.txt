@@ -1,0 +1,127 @@
+I need to implement a English Premier league prediction leaderboard tool.
+I am planning to use django and sqlite for this.
+
+At the start of the season i will give you a csv file that will contain the individual prediction for each player.
+The format will be something like: user_name, team_name, predicted_1, predicted_2...., predicted_20, player_type (player_type -> normal & pundit)
+predicte_n will contain the prediction (standing) of each english premier league team (it will be a number). 
+
+We will need to create a db to store all participating teams (id (int), name) -> we will also store the badge of each team in static images (small image -> titled id.png/jpg)
+
+We also need another table to store the gameweek(gw) state. This will contain information related to all the gameweek and their status.
+model: id (1-38), finished, data_checked, is_current (bool) marks if it is current gameweek, status (boolean) -> means that the gw calculatiosn are done
+finished, data_checked are bool coming from the source (when both are true, the gw is marked as complete, all fixtures done)
+
+
+We will need a predicted table for each entry (user_id, team_id, predicted_rank (1-20), season (default to "2025/26" for all entries now) and will be the source of truth -> won't change after the season starts)
+
+We will then need an actual table: season, gameweek (int 1-38), team id, actual_rank, points, updated_time
+
+Then a final table that stores the scores:
+season, gameweek, user_id, score_correct, score_deviation, rank_correct, rank_deviation, completed (bool)
+score correct: calculated by finding the total number of actual predictions of the user (1 pt for each correct prediction)
+score deviation: calcualted by finding the absolute difference between the predicted rank & actual rank for that gameweek. 
+
+
+We will use this endpoint to fetch all the details  FPL_API https://fantasy.premierleague.com/api/bootstrap-static/ it is publicly accessible
+
+We need a few django commands to start and initialize the season.
+1. Add all the teams -> call FPL_API, it will return a json response
+ it will have a key "teams" that contains the team info. teams obj contains a list of key/value pairs like this
+ {
+            "code": 3,
+            "draw": 0,
+            "form": null,
+            "id": 1,
+            "loss": 0,
+            "name": "Arsenal",
+            "played": 0,
+            "points": 0,
+            "position": 0,
+            "short_name": "ARS",
+            "strength": 4,
+            "team_division": null,
+            "unavailable": false,
+            "win": 0,
+            "strength_overall_home": 1320,
+            "strength_overall_away": 1325,
+            "strength_attack_home": 1350,
+            "strength_attack_away": 1350,
+            "strength_defence_home": 1290,
+            "strength_defence_away": 1300,
+            "pulse_id": 1
+        }
+
+We will also use this same api and object to fetch the team's current position and points to update the actual table.
+
+2. I will give a csv file with all users info mentioned above. Initialize the predicted table based on that info. Need a cmd for that (to initialize)
+
+3. We also need to instantiate the gameweek table from FPL_API. the data comes from "events" key.
+Events has a list of gameweek objects. It looks something like this.
+    {
+      "id": 1,
+      "name": "Gameweek 1",
+      "deadline_time": "2025-08-15T17:30:00Z",
+      "release_time": null,
+      "average_entry_score": 0,
+      "finished": false,
+      "data_checked": false,
+      "highest_scoring_entry": null,
+      "deadline_time_epoch": 1755279000,
+      "deadline_time_game_offset": 0,
+      "highest_score": null,
+      "is_previous": false,
+      "is_current": false,
+      "is_next": true,
+      "cup_leagues_created": false,
+      "h2h_ko_matches_created": false,
+      "can_enter": true,
+      "can_manage": true,
+      "released": true,
+      "ranked_count": 0,
+      "overrides": {
+        "rules": {
+
+        },
+        "scoring": {
+
+        },
+        "element_types": [],
+        "pick_multiplier": null
+      },
+      "chip_plays": [],
+      "most_selected": null,
+      "most_transferred_in": null,
+      "top_element": null,
+      "top_element_info": null,
+      "transfers_made": 0,
+      "most_captained": null,
+      "most_vice_captained": null
+    },
+we only need id, is_current, finished, data_checked. Instanciate with all this info.
+
+What we want:
+We want a frontend and backend for this whole thing.
+
+We want frontend to be exciting yet minimalistic. 
+I want frontend to show these views:
+1. current PL standings. (Instead of using the backend, call the fpl api directly and show the teams info)
+show name, win, loss, draw, points, position and sort by position.
+2. Current standings 
+This comes from the scores table in the backend. 
+Default sort on score_correct . Use datatables and pagination and show a table.
+Also add a filter on player_type. We want to see All, normal, pundits
+I want to see, user_name, team_name, (last_gw_rank, curr_gw_rank, points for both score & deviation based scoring). 
+
+Or we could seggregate the views and create 2 different tables for both the models. I am fine with a single large table or one small table.
+
+---
+Backend:
+for backend we won't have cronjobs to regularly schedule cronjobs. So we will depend on an api /update_scores. This API checks if the current gameweek is completed or not. 
+To reduce massive computations, we will store a flag in db or memory, (last_computed) this will tell us when the scores were last computed and done after this api call succeeds. Before processign the call, if the last_computed time is withing 24 hrs of new request. silently skip this new request
+
+
+We will use the gameweek table and the gameweek (events) info from FPL_API to compute scores.
+We start with gw 1 as current, and update the gameweek table is_current based on api response. 
+Compute the scores for all users based on table and api response. If the finished & data_checked attributes from api are both true, update our gameweek info and mark the gamweek as completed in the db.
+
+We also need to compute individual scores for each user.

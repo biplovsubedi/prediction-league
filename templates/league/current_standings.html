@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Prediction Leaderboard</title>
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.dataTables.min.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/2.0.8/js/dataTables.min.js"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            margin: 24px;
+        }
+
+        h1 {
+            margin-bottom: 16px;
+        }
+
+        .filters {
+            margin: 12px 0;
+        }
+
+        table.dataTable tbody tr:hover {
+            background: #f7f7f7;
+        }
+
+        .site-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .site-header a {
+            color: #0366d6;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .user-cell {
+            line-height: 1.2;
+        }
+
+        .user-cell .u {
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .user-cell .t {
+            color: #666;
+            opacity: .8;
+            font-size: 13px;
+        }
+
+        .pundit-row {
+            background: #f0ecc7 !important;
+        }
+    </style>
+    <script>
+        async function loadScores() {
+            const playerType = document.querySelector('#playerType').value;
+            const res = await fetch(`/api/standings/current/?player_type=${playerType}`);
+            const data = await res.json();
+            const tbody = document.querySelector('#scores tbody');
+            tbody.innerHTML = '';
+            for (const s of data.results) {
+                const tr = document.createElement('tr');
+                const isPundit = s.player_type === 'pundit';
+                const icon = isPundit ? ' <span title="Pundit">⭐</span>' : '';
+                const userLink = `<a href="/api/page/u/${encodeURIComponent(s.username)}/">${s.username}</a>${icon}`;
+                const userTeamCell = `<div class="user-cell"><div class="u">${userLink}</div><div class="t">${s.team_name ? s.team_name : ''}</div></div>`;
+                tr.innerHTML = `
+                    <td>${userTeamCell}</td>
+                    <td>${s.score_correct}</td>
+                    <td>${s.score_deviation}</td>
+                    <td>${s.last_rank_correct_based || '-'}</td>
+                    <td>${s.curr_rank_correct_based || '-'}</td>
+                    <td>${s.last_rank_deviation_based || '-'}</td>
+                    <td>${s.curr_rank_deviation_based || '-'}</td>
+                `;
+                if (isPundit) tr.classList.add('pundit-row');
+                tbody.appendChild(tr);
+            }
+            if (window._dt) { window._dt.destroy(); }
+            window._dt = new DataTable('#scores', { pageLength: 25 });
+            document.querySelector('#gwLabel').textContent = data.gameweek ? `Gameweek ${data.gameweek}` : '';
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelector('#playerType').addEventListener('change', loadScores);
+            loadScores();
+        })
+    </script>
+</head>
+
+<body>
+    <div class="site-header">
+        <a href="/">Home</a>
+        <a href="/api/page/current/">Current Standings</a>
+        <a href="/api/page/pl/">PL Table</a>
+    </div>
+    <h1>Prediction Leaderboard <span id="gwLabel"></span></h1>
+    <div class="filters">
+        <label>Filter:</label>
+        <select id="playerType">
+            <option value="">All</option>
+            <option value="normal">Normal</option>
+            <option value="pundit">Pundit</option>
+        </select>
+    </div>
+    <table id="scores" class="display" style="width:100%">
+        <thead>
+            <tr>
+                <th>User / Team</th>
+                <th>Score Correct</th>
+                <th>Score Deviation</th>
+                <th>Last Rank (Correct)</th>
+                <th>Current Rank (Correct)</th>
+                <th>Last Rank (Deviation)</th>
+                <th>Current Rank (Deviation)</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</body>
+
+</html>

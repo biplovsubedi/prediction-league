@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>User History</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            margin: 24px;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+        }
+
+        .meta {
+            color: #666;
+            margin-bottom: 16px;
+        }
+
+        .wrap {
+            max-width: 960px;
+        }
+
+        canvas {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
+        }
+
+        a {
+            color: #0366d6;
+            text-decoration: none;
+        }
+    </style>
+    <script>
+        async function loadHistory() {
+            const username = '{{ username }}';
+            const res = await fetch(`/api/user_history/${encodeURIComponent(username)}/`);
+            const data = await res.json();
+            document.querySelector('#title').textContent = `${data.username} - ${data.season}`;
+            document.querySelector('#meta').textContent = `${data.player_type || ''} ${data.team_name ? '(' + data.team_name + ')' : ''}`.trim();
+            const labels = data.results.map(r => `GW ${r.gameweek}`);
+            const deviations = data.results.map(r => r.score_deviation);
+            const corrects = data.results.map(r => r.score_correct);
+            const ctx = document.getElementById('devChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'Deviation', data: deviations, borderColor: '#e55353', backgroundColor: 'rgba(229,83,83,.15)', tension: .3 },
+                        { label: 'Correct', data: corrects, borderColor: '#2e86de', backgroundColor: 'rgba(46,134,222,.15)', tension: .3 },
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'top' } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+        document.addEventListener('DOMContentLoaded', loadHistory);
+    </script>
+</head>
+
+<body>
+    <div class="wrap">
+        <a href="/api/page/home/">← Home</a>
+        <h1 id="title">User History</h1>
+        <div id="meta" class="meta"></div>
+        <canvas id="devChart" height="120"></canvas>
+    </div>
+</body>
+
+</html>
