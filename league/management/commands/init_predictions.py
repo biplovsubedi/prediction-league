@@ -5,6 +5,7 @@ from typing import Dict, List
 from django.core.management.base import BaseCommand, CommandError
 
 from league.models import Player, Prediction, Team
+from league.utils import get_teams_lookup, get_team_by_name
 
 
 class Command(BaseCommand):
@@ -47,19 +48,26 @@ class Command(BaseCommand):
                     created_players += 1
 
                 # Resolve favourite team if present
-                fav = Team.objects.filter(name__iexact=team_name).first()
-                if fav and player.favourite_team_id != fav.id:
-                    player.favourite_team = fav
+                fav = get_team_by_name(team_name)
+                if fav and player.favourite_team_id != fav["id"]:
+                    player.favourite_team_id = fav["id"]
                     player.save(update_fields=["favourite_team"])
 
                 # We expect predicted_ranks[i] gives standing for team (i+1) by team id
                 # But the planning doc says predicted_n contains the predicted rank for each team.
                 # We will map by team id 1..20 in order of FPL ids.
-                teams = list(Team.objects.order_by("id"))
-                if len(teams) < 20:
+                teams_lookup = get_teams_lookup()
+                if len(teams_lookup) < 20:
                     raise CommandError("Expected at least 20 teams in DB. Run init_teams first.")
-                for idx, team in enumerate(teams[:20]):
-                    rank = predicted_ranks[idx]
+                
+                # Create predictions for each team by ID
+                for team_id in range(1, 21):  # Teams 1-20
+                    if team_id not in teams_lookup:
+                        raise CommandError(f"Team ID {team_id} not found in database")
+                    
+                    rank = predicted_ranks[team_id - 1]  # predicted_ranks[0] = team 1, etc.
+                    team = Team.objects.get(id=team_id)
+                    
                     Prediction.objects.update_or_create(
                         season=season,
                         player=player,

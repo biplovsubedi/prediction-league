@@ -248,7 +248,7 @@ class ScoreCurrentView(views.APIView):
                 {
                     "username": s.player.username,
                     "player_type": s.player.player_type,
-                    "team_name": s.player.favourite_team.name if s.player.favourite_team else None,
+                    "team_name": s.player.custom_team_name or s.player.username,
                     "gameweek": s.gameweek,
                     "score_correct": s.score_correct,
                     "score_deviation": s.score_deviation,
@@ -299,5 +299,27 @@ def user_history_page(request, username: str):
 
 def homepage(request):
     return render(request, "league/home.html")
+
+
+class UserPredictionsView(views.APIView):
+    def get(self, request, username: str):
+        season = request.GET.get("season", "2025/26")
+        player = Player.objects.filter(username=username).first()
+        if not player:
+            return Response({"username": username, "predictions": []})
+        preds = (
+            Prediction.objects.select_related("team")
+            .filter(player=player, season=season)
+            .order_by("predicted_rank")
+        )
+        payload = [
+            {
+                "team_id": p.team_id,
+                "team_name": p.team.name,
+                "predicted_rank": p.predicted_rank,
+            }
+            for p in preds
+        ]
+        return Response({"username": player.username, "season": season, "predictions": payload})
 
 # Create your views here.

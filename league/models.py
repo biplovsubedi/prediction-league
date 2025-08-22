@@ -35,6 +35,7 @@ class Player(models.Model):
 
     username = models.CharField(max_length=100, unique=True)
     favourite_team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True)
+    custom_team_name = models.CharField(max_length=100, blank=True, null=True, help_text="User's custom team name")
     player_type = models.CharField(max_length=10, choices=PLAYER_TYPES, default="normal")
 
     def __str__(self) -> str:

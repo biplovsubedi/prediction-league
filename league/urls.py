@@ -6,6 +6,7 @@ from .views import (
     UpdateScoresView,
     ScoreCurrentView,
     UserHistoryView,
+    UserPredictionsView,
     current_standings_page,
     user_history_page,
     homepage,
@@ -28,6 +29,7 @@ urlpatterns = [
     # Aggregated standings JSON
     path("standings/current/", ScoreCurrentView.as_view()),
     path("user_history/<str:username>/", UserHistoryView.as_view()),
+    path("user_predictions/<str:username>/", UserPredictionsView.as_view()),
 ]
 
 

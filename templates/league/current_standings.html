@@ -53,6 +53,78 @@
             font-size: 13px;
         }
 
+        /* Modal */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .35);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 99;
+        }
+
+        .modal {
+            width: min(900px, 96vw);
+            max-height: 90vh;
+            overflow: auto;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, .2);
+        }
+
+        .modal header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal header h3 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .modal header button {
+            background: transparent;
+            border: 0;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .modal .body {
+            padding: 12px 14px;
+        }
+
+        .modal .summary {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 13px;
+        }
+
+        .modal table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .modal th,
+        .modal td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 12.5px;
+        }
+
+        .ok {
+            color: #2ecc71;
+            font-weight: 600;
+        }
+
+        .miss {
+            color: #e55353;
+            font-weight: 600;
+        }
+
         .pundit-row {
             background: #f0ecc7 !important;
         }
@@ -68,12 +140,13 @@
                 const tr = document.createElement('tr');
                 const isPundit = s.player_type === 'pundit';
                 const icon = isPundit ? ' <span title="Pundit">⭐</span>' : '';
-                const userLink = `<a href="/api/page/u/${encodeURIComponent(s.username)}/">${s.username}</a>${icon}`;
+                const displayName = s.username.replace(/_/g, ' ');
+                const userLink = `<a href="/api/page/u/${encodeURIComponent(s.username)}/">${displayName}</a>${icon}`;
                 const userTeamCell = `<div class="user-cell"><div class="u">${userLink}</div><div class="t">${s.team_name ? s.team_name : ''}</div></div>`;
                 tr.innerHTML = `
                     <td>${userTeamCell}</td>
-                    <td>${s.score_correct}</td>
-                    <td>${s.score_deviation}</td>
+                    <td><a href="#" class="breakdown-link" data-username="${s.username}" data-type="correct">${s.score_correct}</a></td>
+                    <td><a href="#" class="breakdown-link" data-username="${s.username}" data-type="deviation">${s.score_deviation}</a></td>
                     <td>${s.last_rank_correct_based || '-'}</td>
                     <td>${s.curr_rank_correct_based || '-'}</td>
                     <td>${s.last_rank_deviation_based || '-'}</td>
@@ -83,12 +156,74 @@
                 tbody.appendChild(tr);
             }
             if (window._dt) { window._dt.destroy(); }
-            window._dt = new DataTable('#scores', { pageLength: 25 });
+            window._dt = new DataTable('#scores', {
+                pageLength: 25,
+                order: [[2, 'asc']]  // Sort by score deviation (column 2) in ascending order
+            });
             document.querySelector('#gwLabel').textContent = data.gameweek ? `Gameweek ${data.gameweek}` : '';
         }
+        async function openBreakdown(username, type) {
+            const backdrop = document.getElementById('modalBackdrop');
+            const title = document.getElementById('modalTitle');
+            const content = document.getElementById('modalContent');
+            title.textContent = `Breakdown for ${username} (${type})`;
+            content.innerHTML = 'Loading...';
+            backdrop.style.display = 'flex';
+
+            try {
+                const [predRes, currRes] = await Promise.all([
+                    fetch(`/api/user_predictions/${encodeURIComponent(username)}/`),
+                    fetch('/api/standings/pl/'),
+                ]);
+                const predJson = await predRes.json();
+                const teams = await currRes.json();
+                const posByTeamId = new Map(teams.map(t => [t.id, t.position || 0]));
+                const nameByTeamId = new Map(teams.map(t => [t.id, t.name]));
+                const rows = (predJson.predictions || []).map(p => {
+                    const actual = posByTeamId.get(p.team_id) || 0;
+                    const deviation = Math.abs((p.predicted_rank || 0) - (actual || 0));
+                    const correct = (p.predicted_rank || 0) === (actual || 0);
+                    return {
+                        team: p.team_name || nameByTeamId.get(p.team_id) || p.team_id,
+                        predicted: p.predicted_rank || 0,
+                        actual,
+                        deviation,
+                        correct,
+                    };
+                });
+                const totalCorrect = rows.filter(r => r.correct).length;
+                const totalDeviation = rows.reduce((acc, r) => acc + r.deviation, 0);
+                rows.sort((a, b) => a.actual - b.actual);
+                const table = [`<div class="summary">Total correct: <b>${totalCorrect}</b> • Total deviation: <b>${totalDeviation}</b></div>`,
+                    '<table><thead><tr><th>Team</th><th>Predicted</th><th>Actual</th><th>Deviation</th><th>Result</th></tr></thead><tbody>']
+                    .concat(rows.map(r => `<tr><td>${r.team}</td><td>${r.predicted}</td><td>${r.actual}</td><td>${r.deviation}</td><td>${r.correct ? '<span class=ok>Correct</span>' : '<span class=miss>Miss</span>'}</td></tr>`))
+                    .concat(['</tbody></table>']).join('');
+                content.innerHTML = table;
+            } catch (e) {
+                content.innerHTML = 'Failed to load breakdown.';
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelector('#playerType').addEventListener('change', loadScores);
             loadScores();
+            // Close modal
+            document.getElementById('modalClose').addEventListener('click', () => {
+                document.getElementById('modalBackdrop').style.display = 'none';
+            });
+            document.getElementById('modalBackdrop').addEventListener('click', (e) => {
+                if (e.target.id === 'modalBackdrop') e.currentTarget.style.display = 'none';
+            });
+            // Delegate clicks for breakdown
+            document.addEventListener('click', (e) => {
+                const a = e.target.closest('a.breakdown-link');
+                if (a) {
+                    e.preventDefault();
+                    const username = a.getAttribute('data-username');
+                    const type = a.getAttribute('data-type');
+                    openBreakdown(username, type);
+                }
+            });
         })
     </script>
 </head>
@@ -122,6 +257,16 @@
         </thead>
         <tbody></tbody>
     </table>
+
+    <div id="modalBackdrop" class="modal-backdrop">
+        <div class="modal" role="dialog" aria-modal="true">
+            <header>
+                <h3 id="modalTitle">Breakdown</h3>
+                <button id="modalClose" aria-label="Close">×</button>
+            </header>
+            <div id="modalContent" class="body">Loading...</div>
+        </div>
+    </div>
 </body>
 
 </html>

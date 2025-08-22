@@ -153,7 +153,7 @@
             plBody.innerHTML = '';
             plJson.slice(0, 10).forEach(t => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${t.position}</td><td>${t.name}</td><td>${t.points}</td>`;
+                tr.innerHTML = `<td>${t.position}</td><td>${t.name}</td>`;
                 plBody.appendChild(tr);
             });
             new DataTable('#pl', { paging: false, searching: false, info: false });
@@ -215,7 +215,6 @@
                     <tr>
                         <th>Pos</th>
                         <th>Team</th>
-                        <th>Pts</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
