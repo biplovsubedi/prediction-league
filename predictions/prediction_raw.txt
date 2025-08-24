@@ -613,3 +613,24 @@ StyrmanAllan — 8/16/25, 12:13 AM
 18.Wolves
 19.Burnley
 20.Sunderland
+dsouza  — 8/17/25, 12:13 AM
+ 1.⁠ ⁠United
+ 2.⁠ ⁠⁠Arsenal
+ 3.⁠ ⁠⁠City
+ 4.⁠ ⁠⁠Liverpool
+ 5.⁠ ⁠⁠Brighton
+ 6.⁠ ⁠⁠Chelsea
+ 7.⁠ ⁠⁠Everton
+ 8.⁠ ⁠⁠Spurs
+ 9.⁠ ⁠⁠Villa
+10.⁠ ⁠⁠Newcastle
+11.⁠ ⁠⁠Bournemouth
+12.⁠ ⁠⁠West Ham
+13.⁠ ⁠⁠Fulham
+14.⁠ ⁠⁠Palace
+15.⁠ ⁠⁠Forest
+16.⁠ ⁠⁠Sunderland
+17.⁠ ⁠⁠Leeds
+18.⁠ ⁠⁠Brentford
+19.⁠ ⁠⁠Wolves
+20.⁠ ⁠⁠Burnley

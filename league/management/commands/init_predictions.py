@@ -5,7 +5,7 @@ from typing import Dict, List
 from django.core.management.base import BaseCommand, CommandError
 
 from league.models import Player, Prediction, Team
-from league.utils import get_teams_lookup, get_team_by_name
+from league.utils import get_teams_lookup
 
 
 class Command(BaseCommand):
@@ -35,44 +35,47 @@ class Command(BaseCommand):
                 if len(row) < 23:
                     raise CommandError("Row does not have 23 columns (got %d): %s" % (len(row), row))
                 username = row[0].strip()
-                team_name = row[1].strip()
+                team_name = row[1].strip()  # This is the user's prediction alias/entry name
                 predicted_ranks = [int(x.strip()) for x in row[2:22]]
                 player_type = row[22].strip() or "normal"
 
                 # Ensure player
                 player, created = Player.objects.get_or_create(
                     username=username,
-                    defaults={"player_type": player_type},
+                    defaults={"player_type": player_type, "custom_team_name": team_name},
                 )
                 if created:
                     created_players += 1
+                else:
+                    # Update custom_team_name if it changed
+                    if player.custom_team_name != team_name:
+                        player.custom_team_name = team_name
+                        player.save(update_fields=["custom_team_name"])
 
-                # Resolve favourite team if present
-                fav = get_team_by_name(team_name)
-                if fav and player.favourite_team_id != fav["id"]:
-                    player.favourite_team_id = fav["id"]
-                    player.save(update_fields=["favourite_team"])
-
-                # We expect predicted_ranks[i] gives standing for team (i+1) by team id
-                # But the planning doc says predicted_n contains the predicted rank for each team.
-                # We will map by team id 1..20 in order of FPL ids.
+                # The CSV contains: predicted_ranks[i] = team ID that should be in position (i+1)
+                # So predicted_ranks[0] = team ID for 1st place, predicted_ranks[1] = team ID for 2nd place, etc.
                 teams_lookup = get_teams_lookup()
                 if len(teams_lookup) < 20:
                     raise CommandError("Expected at least 20 teams in DB. Run init_teams first.")
                 
-                # Create predictions for each team by ID
-                for team_id in range(1, 21):  # Teams 1-20
-                    if team_id not in teams_lookup:
-                        raise CommandError(f"Team ID {team_id} not found in database")
+                # Create predictions for each rank position
+                for rank_position in range(1, 21):  # Ranks 1-20
+                    team_id = predicted_ranks[rank_position - 1]  # Get team ID for this rank position
                     
-                    rank = predicted_ranks[team_id - 1]  # predicted_ranks[0] = team 1, etc.
+                    if team_id == 0:
+                        self.stdout.write(f"Warning: User {username} has no prediction for rank {rank_position}")
+                        continue
+                        
+                    if team_id not in teams_lookup:
+                        raise CommandError(f"Team ID {team_id} not found in database for user {username}")
+                    
                     team = Team.objects.get(id=team_id)
                     
                     Prediction.objects.update_or_create(
                         season=season,
                         player=player,
                         team=team,
-                        defaults={"predicted_rank": rank},
+                        defaults={"predicted_rank": rank_position},
                     )
                     created_predictions += 1
 

@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import MinValueValidator
 
 
 class Team(models.Model):
@@ -34,7 +35,6 @@ class Player(models.Model):
     )
 
     username = models.CharField(max_length=100, unique=True)
-    favourite_team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True)
     custom_team_name = models.CharField(max_length=100, blank=True, null=True, help_text="User's custom team name")
     player_type = models.CharField(max_length=10, choices=PLAYER_TYPES, default="normal")
 
@@ -46,13 +46,29 @@ class Prediction(models.Model):
     season = models.CharField(max_length=9, default="2025/26")
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
     team = models.ForeignKey(Team, on_delete=models.CASCADE)
-    predicted_rank = models.PositiveSmallIntegerField()
+    predicted_rank = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1, message="Predicted rank must be at least 1")]
+    )
 
     class Meta:
-        unique_together = ("season", "player", "team")
+        unique_together = [
+            ("season", "player", "predicted_rank"),
+            ("season", "player", "team")
+        ]
         indexes = [
             models.Index(fields=["season", "player"]),
         ]
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.predicted_rank == 0:
+            raise ValidationError("Predicted rank cannot be 0")
+        if self.predicted_rank is None:
+            raise ValidationError("Predicted rank cannot be null")
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
 
 class ActualStanding(models.Model):

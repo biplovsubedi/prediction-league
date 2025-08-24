@@ -23,7 +23,7 @@ class ScoreListView(generics.ListAPIView):
     pagination_class = pagination.PageNumberPagination
 
     def get_queryset(self):
-        qs = Score.objects.select_related("player", "player__favourite_team").order_by(
+        qs = Score.objects.select_related("player").order_by(
             "-score_correct", "score_deviation"
         )
         player_type = self.request.query_params.get("player_type")
@@ -204,7 +204,7 @@ class ScoreCurrentView(views.APIView):
         def fetch_scores(gw_obj: Optional[Gameweek]):
             if not gw_obj:
                 return []
-            qs = Score.objects.select_related("player", "player__favourite_team").filter(gameweek=gw_obj.id)
+            qs = Score.objects.select_related("player").filter(gameweek=gw_obj.id)
             if player_type in {"normal", "pundit"}:
                 qs = qs.filter(player__player_type=player_type)
             return list(qs)
@@ -287,7 +287,7 @@ class UserHistoryView(views.APIView):
         return Response({
             "username": player.username,
             "player_type": player.player_type,
-            "team_name": player.favourite_team.name if player.favourite_team else None,
+            "team_name": player.custom_team_name or player.username,
             "season": season,
             "results": results,
         })

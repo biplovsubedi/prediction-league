@@ -10,11 +10,9 @@ class TeamSerializer(serializers.ModelSerializer):
 
 
 class PlayerSerializer(serializers.ModelSerializer):
-    favourite_team = TeamSerializer(read_only=True)
-
     class Meta:
         model = Player
-        fields = ["username", "player_type", "favourite_team"]
+        fields = ["username", "player_type"]
 
 
 class ScoreSerializer(serializers.ModelSerializer):

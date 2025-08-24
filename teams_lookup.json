@@ -73,25 +73,25 @@
   },
   "13": {
     "id": 13,
-    "name": "Man City",
+    "name": "Manchester City",
     "short_name": "MCI",
     "code": 43
   },
   "14": {
     "id": 14,
-    "name": "Man Utd",
+    "name": "Manchester United",
     "short_name": "MUN",
     "code": 1
   },
   "15": {
     "id": 15,
-    "name": "Newcastle",
+    "name": "Newcastle United",
     "short_name": "NEW",
     "code": 4
   },
   "16": {
     "id": 16,
-    "name": "Nott'm Forest",
+    "name": "Nottingham Forest",
     "short_name": "NFO",
     "code": 17
   },
@@ -103,7 +103,7 @@
   },
   "18": {
     "id": 18,
-    "name": "Spurs",
+    "name": "Tottenham",
     "short_name": "TOT",
     "code": 6
   },

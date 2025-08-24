@@ -16,7 +16,7 @@ class GameweekAdmin(admin.ModelAdmin):
 
 @admin.register(Player)
 class PlayerAdmin(admin.ModelAdmin):
-    list_display = ("username", "player_type", "favourite_team")
+    list_display = ("username", "player_type")
     list_filter = ("player_type",)
     search_fields = ("username",)
 
