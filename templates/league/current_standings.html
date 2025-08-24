@@ -77,13 +77,16 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 14px;
-            border-bottom: 1px solid #eee;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            background-color: #f8f9fa;
         }
 
         .modal header h3 {
             margin: 0;
-            font-size: 16px;
+            font-size: 18px;
+            color: #333;
+            font-weight: 600;
         }
 
         .modal header button {
@@ -94,13 +97,17 @@
         }
 
         .modal .body {
-            padding: 12px 14px;
+            padding: 16px 20px;
         }
 
         .modal .summary {
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             color: #333;
-            font-size: 13px;
+            font-size: 14px;
+            padding: 12px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
         }
 
         .modal table {
@@ -113,6 +120,48 @@
             padding: 6px 8px;
             border-bottom: 1px solid #f0f0f0;
             font-size: 12.5px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .modal th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .modal td {
+            color: #555;
+        }
+
+        .breakdown-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .breakdown-table th,
+        .breakdown-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 13px;
+        }
+
+        .breakdown-table th {
+            background-color: #f5f5f5;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .breakdown-table td {
+            color: #444;
+            vertical-align: middle;
+        }
+
+        .breakdown-table tr:hover {
+            background-color: #f9f9f9;
         }
 
         .ok {
@@ -195,7 +244,7 @@
                 const totalDeviation = rows.reduce((acc, r) => acc + r.deviation, 0);
                 rows.sort((a, b) => a.actual - b.actual);
                 const table = [`<div class="summary">Total correct: <b>${totalCorrect}</b> • Total deviation: <b>${totalDeviation}</b></div>`,
-                    '<table><thead><tr><th>Team</th><th>Predicted</th><th>Actual</th><th>Deviation</th><th>Result</th></tr></thead><tbody>']
+                    '<table class="breakdown-table"><thead><tr><th>Team</th><th>Predicted</th><th>Actual</th><th>Deviation</th><th>Result</th></tr></thead><tbody>']
                     .concat(rows.map(r => `<tr><td>${r.team}</td><td>${r.predicted}</td><td>${r.actual}</td><td>${r.deviation}</td><td>${r.correct ? '<span class=ok>Correct</span>' : '<span class=miss>Miss</span>'}</td></tr>`))
                     .concat(['</tbody></table>']).join('');
                 content.innerHTML = table;
